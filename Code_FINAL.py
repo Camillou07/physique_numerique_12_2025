@@ -383,11 +383,3 @@ plt.title("Densité de matière simulée avec l'approximation de Zel'dovich ")
 plt.show() 
 
 
-
-
-
-#salut les amis test git hub
-
-# modif 2 github qaqa
-
-# bonsoir test 3 
