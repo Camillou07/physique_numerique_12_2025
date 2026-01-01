@@ -246,7 +246,7 @@ list_ex_a= [0.0001, 0.0116,0.0159,0.0206,0.0478,0.0733,0.208,0.331,1.03]
 #fonction qui détermine liste des aires d'avant interessantes 
 list_before=[]
 for i in list_ex_a:
-    alpha=rectangular_integration(0.1,i, 1000)
+    alpha=rectangular_integration(10**-4,i, 1000)
     list_before.append(alpha)
 print(list_before)
 
@@ -276,8 +276,8 @@ plt.show()
 
 
 #____ définition des constantes___
-L=2000#  MPC/h 'taille de Univers'
-N=1000 # nombre de cellules par côtés
+L=20000 #  MPC/h 'taille de Univers'
+N=5000 # nombre de cellules par côtés
 dx=L/N
 dy=L/N
 
@@ -285,12 +285,41 @@ dy=L/N
 
 ###_______________________________ 2) déterminer q (immobile dans espace initial) = tableau de valeurs définies selon les deux axes x et y ___________________
 
-x=np.linspace(-L/2,L/2,N) # coordonnée espace dans une direction 
-y=np.linspace(-L/2,L/2,N)
-X,Y=np.meshgrid(x,y)# tableaux qui regroupe toutes les coordonnées sur x et sur y 
-coords = np.stack((X, Y), axis=-1)
 
-print(x)
+def grid(L, N):
+    """
+    Génère une grille 2D centrée en 0 pour une boîte carrée de taille L
+    avec N points par dimension.
+
+    Paramètres
+    ----------
+    L : float
+        Taille physique de la boîte
+    N : int
+        Nombre de points par direction
+
+    Retours
+    -------
+    x, y : ndarray
+        Coordonnées 1D
+    X, Y : ndarray
+        Grilles 2D des coordonnées
+    coords : ndarray
+        Tableau des coordonnées de forme (N, N, 2)
+    """
+    x = np.linspace(-L/2, L/2, N)
+    y = np.linspace(-L/2, L/2, N)
+
+    X, Y = np.meshgrid(x, y)
+    #coords=np.sqrt(x**2 + y**2)
+
+    coords = np.stack((X, Y), axis=-1)
+
+    return x, y, X, Y, coords
+
+
+x, y, X, Y, coords = grid(L, N)
+
 
 
 ## ______________________________3) On détermine le gradient du potentiel ________________________________
@@ -303,7 +332,6 @@ psi=np.random.normal(0,1,(N,N))  #tableau 2D
 #---- création des fonction phi à partir de psi----
 
 phi=psi*-( (3/2)*H0**2* omega_m_0)**-1
-
 
 # ----Transfo de fourier 2D----
 
@@ -319,10 +347,16 @@ k=np.sqrt(kxv**2+kyv**2) # normalisation car pas homogène tableau
 k[0,0]=np.inf
 
 
+#____ augmentation d'intensité 
+
+
+F_k_phi=-F_k*(k**-3.5)# permet de augmenter l'intensité de tout ce qui se produit 
+F_k_phi[k==np.inf]=0 # normalisation au cas ou pas normalisé 
+
 #----dériver dans espace de fourier donc multiplier par ik----
 
-grad_phi_k_x = 1j * (kxv/k) * F_k # tableau 2D 
-grad_phi_k_y = 1j * (kyv/k) * F_k
+grad_phi_k_x = 1j * (kxv/k) * F_k_phi # tableau 2D normalisé 
+grad_phi_k_y = 1j * (kyv/k) * F_k_phi
 
 
 # -----on revient dans l'espace réel----
@@ -331,9 +365,27 @@ grad_phi_x = np.fft.ifft2(grad_phi_k_x).real # tablaeau 2D
 grad_phi_y = np.fft.ifft2(grad_phi_k_y).real 
 
 
+grad_phi_x_s=np.fft.fftshift(grad_phi_x)
+grad_phi_y_s=np.fft.fftshift(grad_phi_y)
+
+
 #_____on empile juste les deux tableaux 2D____
 
-gradient_potential= np.stack((grad_phi_x, grad_phi_y), axis=-1)
+gradient_potential= np.stack((grad_phi_x_s, grad_phi_y_s), axis=-1)
+
+
+'''
+# 5. Visualisation de la norme (les filaments apparaissent ici)
+
+plt.figure(figsize=(8,8))
+plt.imshow(np.fft.fftshift(norme_deplacement), cmap='hot')# remettre dans l'ordre 
+plt.title("Champ de déplacement (Filaments de Zeldovich)")
+plt.colorbar()
+plt.show()
+
+'''
+
+
 
 # ----multiplie les valeurs obtenues par D puis on ajoute le tableau de départ pour chaque coordonée____ 
 
@@ -347,17 +399,16 @@ list_ex_a= [0.0001, 0.0116,0.0159,0.0206,0.0478,0.0733,0.208,0.331,1.03]
 # plot final pour afficher les variations de densité 
 
 
-
-#t=t_0
-Xnew3 = coords + list_D_values[8]* gradient_potential   # tableau 2D avec deux coordonnées dans chaque case 
+#t=1e15
+Xnew04 = coords + (list_D_values[3])* gradient_potential   # tableau 2D avec deux coordonnées dans chaque case 
  
 #On trace le résultat 
 
-Xf3 = Xnew3[:,:,0].flatten()
-Yf3 = Xnew3[:,:,1].flatten()
+Xf04 = Xnew04[:,:,0].flatten()
+Yf04 = Xnew04[:,:,1].flatten()
 
 plt.figure(figsize=(6,5))
-plt.hist2d(Xf3, Yf3, bins=500, cmap='plasma')
+plt.hist2d(Xf04, Yf04, bins=500, cmap='plasma')
 plt.colorbar(label='Density of the points')
 plt.xlabel("Final Position X [Mpc/h]")
 plt.ylabel(" Finale Position Y [Mpc/h]")
@@ -366,8 +417,10 @@ plt.show()
 
 
 
-#t=1e16
-Xnew = coords + list_D_values[5]* gradient_potential   # tableau 2D avec deux coordonnées dans chaque case 
+
+
+#t=t_0
+Xnew = coords + (list_D_values[8]*50)*  gradient_potential   # tableau 2D avec deux coordonnées dans chaque case 
  
 #On trace le résultat 
 
@@ -381,5 +434,102 @@ plt.xlabel("Final Position X [Mpc/h]")
 plt.ylabel(" Finale Position Y [Mpc/h]")
 plt.title("Densité de matière simulée avec l'approximation de Zel'dovich ")
 plt.show() 
+
+
+'''
+
+#t=1e17
+Xnew1 = coords + (list_D_values[7]*50)*    # tableau 2D avec deux coordonnées dans chaque case 
+ 
+#On trace le résultat 
+
+Xf1 = Xnew1[:,:,0].flatten()
+Yf1 = Xnew1[:,:,1].flatten()
+
+plt.figure(figsize=(6,5))
+plt.hist2d(Xf1, Yf1, bins=500, cmap='plasma')
+plt.colorbar(label='Density of the points')
+plt.xlabel("Final Position X [Mpc/h]")
+plt.ylabel(" Finale Position Y [Mpc/h]")
+plt.title("Densité de matière simulée avec l'approximation de Zel'dovich ")
+plt.show() 
+
+
+
+#t=1e16
+Xnew2 = coords + (list_D_values[5]*50)* gradient_potential   # tableau 2D avec deux coordonnées dans chaque case 
+ 
+#On trace le résultat 
+
+Xf2 = Xnew2[:,:,0].flatten()
+Yf2 = Xnew2[:,:,1].flatten()
+
+plt.figure(figsize=(6,5))
+plt.hist2d(Xf2, Yf2, bins=500, cmap='plasma')
+plt.colorbar(label='Density of the points')
+plt.xlabel("Final Position X [Mpc/h]")
+plt.ylabel(" Finale Position Y [Mpc/h]")
+plt.title("Densité de matière simulée avec l'approximation de Zel'dovich ")
+plt.show() 
+
+'''
+
+
+#___________
+
+
+#t=t_0
+Xnew0 = coords + (list_D_values[8])* gradient_potential   # tableau 2D avec deux coordonnées dans chaque case 
+ 
+#On trace le résultat 
+
+Xf0 = Xnew0[:,:,0].flatten()
+Yf0 = Xnew0[:,:,1].flatten()
+
+plt.figure(figsize=(6,5))
+plt.hist2d(Xf0, Yf0, bins=500, cmap='plasma')
+plt.colorbar(label='Density of the points')
+plt.xlabel("Final Position X [Mpc/h]")
+plt.ylabel(" Finale Position Y [Mpc/h]")
+plt.title("Densité de matière simulée avec l'approximation de Zel'dovich ")
+plt.show() 
+
+
+
+
+#t=1e17
+Xnew01 = coords + (list_D_values[7])* gradient_potential   # tableau 2D avec deux coordonnées dans chaque case 
+ 
+#On trace le résultat 
+
+Xf01 = Xnew01[:,:,0].flatten()
+Yf01 = Xnew01[:,:,1].flatten()
+
+plt.figure(figsize=(6,5))
+plt.hist2d(Xf01, Yf01, bins=500, cmap='plasma')
+plt.colorbar(label='Density of the points')
+plt.xlabel("Final Position X [Mpc/h]")
+plt.ylabel(" Finale Position Y [Mpc/h]")
+plt.title("Densité de matière simulée avec l'approximation de Zel'dovich ")
+plt.show()
+
+
+#t=1e16
+Xnew02 = coords + (list_D_values[5])* gradient_potential   # tableau 2D avec deux coordonnées dans chaque case 
+ 
+#On trace le résultat 
+
+Xf02 = Xnew02[:,:,0].flatten()
+Yf02 = Xnew02[:,:,1].flatten()
+
+plt.figure(figsize=(6,5))
+plt.hist2d(Xf02, Yf02, bins=500, cmap='plasma')
+plt.colorbar(label='Density of the points')
+plt.xlabel("Final Position X [Mpc/h]")
+plt.ylabel(" Finale Position Y [Mpc/h]")
+plt.title("Densité de matière simulée avec l'approximation de Zel'dovich ")
+plt.show() 
+
+
 
 
