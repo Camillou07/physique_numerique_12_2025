@@ -19,7 +19,7 @@ omega_d_0=0.7 # densité d'énergie noire
 t_0= 4.35e17 # temps en sec =  aujourd'hui, noté avec 0 en cosmologie dans toutes les variables
 t_b= 1e13   # en sec correspond à 300 000 ans = date de diffusion du fond diffus cosmologique
 
-h= 4.4e13   # en sec, pas de temps 
+h= 4.4e12   # en sec, pas de temps 
 a_b= 1e-4    # doit être petit le facteur d'échelle tend vers 0   
 
 
@@ -68,22 +68,6 @@ plt.show()
 
 
 
-# Liste des temps pour lesquels on  veut connaître a(t)___________
-Lt = [t_b, 1e14, 5e14, 1e15, 5e15, 1e16,5e16, 1e17, t_0]
-
-# Affichage  des valeurs a(t)
-for t in Lt:
-    a_val = np.interp(t, l1, l2)
-    print(f"t = {t:.3g} → a(t) = {a_val:.3g}")
-
-#liste d'exemple  des valeurs de a qu'on veut étudier :
-list_ex_a= [0.0001, 0.0116,0.0159,0.0206,0.0478,0.0733,0.208,0.331,1.03]
-
-
-
-
-
-
 #######__________ ETAPE 2 : TRACER PARAMETRES DE DENSITÉ AU COURS DU TEMPS__________ #########
 
 
@@ -95,14 +79,21 @@ rho_r_t = rho_r_0 * l2**-4
 rho_d_t = rho_0 * np.ones_like(l2)  # énergie noire constante
 
 # Hubble au temps t
-H_t = H0 * np.sqrt(omega_r_0*l2**-4 + omega_m_0*l2**-3 + omega_d_0)
+
+def function_H(a):
+    return H0*np.sqrt(omega_r_0*(a**-4) + omega_m_0*(a**-3) + omega_d_0)
+
+H_t=function_H(l2) 
+
+
+#H_t = H0 * np.sqrt(omega_r_0*l2**-4 + omega_m_0*l2**-3 + omega_d_0)
 
 # Paramètres de densité Omega_i(t)
 fonction_omega_m = rho_m_t / (3*H_t**2/(8*np.pi*G))
 fonction_omega_r = rho_r_t / (3*H_t**2/(8*np.pi*G))
 fonction_omega_d = rho_d_t / (3*H_t**2/(8*np.pi*G))
 
-
+'''
 
 # Tracer la densité Oméga en fonction du temps 
 
@@ -181,7 +172,7 @@ plt.legend()  # affiche la légende
 plt.grid(True, which="both", ls="--", alpha=0.5)
 plt.show()
 
-
+'''
 
 
 
@@ -226,37 +217,42 @@ for a_val in l2:
 print(air_before_list)
 '''
 
-#fonction H_____________
-def H(a):
-    H_val = H0 * np.sqrt(omega_r_0*(a**-4) + omega_m_0*(a**-3) + omega_d_0)
-    if H_val <= 0:
-        print("Attention H(a) <= 0 pour a =", a)
-    return H_val
 
 
 
-#différentes valeurs de a 
 
-#liste des temps interessants 
+
+# Liste des temps pour lesquels on  veut connaître a(t)___________
 Lt = [t_b, 1e14, 5e14, 1e15, 5e15, 1e16,5e16, 1e17, t_0]
-#liste des a interessants 
-list_ex_a= [0.0001, 0.0116,0.0159,0.0206,0.0478,0.0733,0.208,0.331,1.03]
+
+# Affichage  des valeurs a(t)
+for t in Lt:
+    a_val = np.interp(t, l1, l2)
+    print(f"t = {t:.3g} → a(t) = {a_val:.3g}")
+
+#liste d'exemple  des valeurs de a qu'on veut étudier :
+La= [0.0001, 0.0116,0.0159,0.0206,0.0478,0.0733,0.208,0.331,1.03]
+
+
 
 
 #fonction qui détermine liste des aires d'avant interessantes 
 list_before=[]
-for i in list_ex_a:
-    alpha=rectangular_integration(10**-4,i, 1000)
+for i in La:
+    alpha=rectangular_integration(10**-5,i, 500)
     list_before.append(alpha)
 print(list_before)
 
 
 #fonction qui donne une liste des valeurs de D associées
 list_D_values=[]
-for j,k in zip(list_ex_a,list_before) :
-    beta=(H(j)/H0) * k
+for j,k in zip(La,list_before) :
+    beta=(function_H(j)/H0) * k
     list_D_values.append(beta)
 print(list_D_values)
+
+
+
 
 '''
 #vérification du facteur de croissance
@@ -275,9 +271,11 @@ plt.show()
 '''
 
 
+
+
 #____ définition des constantes___
-L=20000 #  MPC/h 'taille de Univers'
-N=5000 # nombre de cellules par côtés
+L=500 #  MPC/h 'taille de Univers'
+N=1000 # nombre de cellules par côtés
 dx=L/N
 dy=L/N
 
@@ -374,33 +372,21 @@ grad_phi_y_s=np.fft.fftshift(grad_phi_y)
 gradient_potential= np.stack((grad_phi_x_s, grad_phi_y_s), axis=-1)
 
 
-'''
-# 5. Visualisation de la norme (les filaments apparaissent ici)
-
-plt.figure(figsize=(8,8))
-plt.imshow(np.fft.fftshift(norme_deplacement), cmap='hot')# remettre dans l'ordre 
-plt.title("Champ de déplacement (Filaments de Zeldovich)")
-plt.colorbar()
-plt.show()
-
-'''
-
-
-
 # ----multiplie les valeurs obtenues par D puis on ajoute le tableau de départ pour chaque coordonée____ 
-
-
-#liste des temps interessants 
-Lt = [t_b, 1e14, 5e14, 1e15, 5e15, 1e16,5e16, 1e17, t_0]
-#liste des a interessants 
-list_ex_a= [0.0001, 0.0116,0.0159,0.0206,0.0478,0.0733,0.208,0.331,1.03]
 
 
 # plot final pour afficher les variations de densité 
 
 
+
+
+
+
+
+'''
+
 #t=1e15
-Xnew04 = coords + (list_D_values[3])* gradient_potential   # tableau 2D avec deux coordonnées dans chaque case 
+Xnew04 = coords + (list_D_values[3]*500)* gradient_potential   # tableau 2D avec deux coordonnées dans chaque case 
  
 #On trace le résultat 
 
@@ -412,15 +398,15 @@ plt.hist2d(Xf04, Yf04, bins=500, cmap='plasma')
 plt.colorbar(label='Density of the points')
 plt.xlabel("Final Position X [Mpc/h]")
 plt.ylabel(" Finale Position Y [Mpc/h]")
-plt.title("Densité de matière simulée avec l'approximation de Zel'dovich ")
+plt.title("Densité de matière simulée avec l'approximation de Zel'dovich pour t=10-2 Gyr ")
 plt.show() 
 
-
+'''
 
 
 
 #t=t_0
-Xnew = coords + (list_D_values[8]*50)*  gradient_potential   # tableau 2D avec deux coordonnées dans chaque case 
+Xnew = coords + (list_D_values[8]*500)*  gradient_potential   # tableau 2D avec deux coordonnées dans chaque case 
  
 #On trace le résultat 
 
@@ -432,14 +418,16 @@ plt.hist2d(Xf, Yf, bins=500, cmap='plasma')
 plt.colorbar(label='Density of the points')
 plt.xlabel("Final Position X [Mpc/h]")
 plt.ylabel(" Finale Position Y [Mpc/h]")
-plt.title("Densité de matière simulée avec l'approximation de Zel'dovich ")
+plt.title("Densité de matière simulée avec l'approximation de Zel'dovich pour t=13,8 Gyr")
 plt.show() 
+
 
 
 '''
 
-#t=1e17
-Xnew1 = coords + (list_D_values[7]*50)*    # tableau 2D avec deux coordonnées dans chaque case 
+
+#t=1e17=3.17 Gyr
+Xnew1 = coords + (list_D_values[7]*50)* gradient_potential   # tableau 2D avec deux coordonnées dans chaque case 
  
 #On trace le résultat 
 
@@ -451,7 +439,7 @@ plt.hist2d(Xf1, Yf1, bins=500, cmap='plasma')
 plt.colorbar(label='Density of the points')
 plt.xlabel("Final Position X [Mpc/h]")
 plt.ylabel(" Finale Position Y [Mpc/h]")
-plt.title("Densité de matière simulée avec l'approximation de Zel'dovich ")
+plt.title("Densité de matière simulée avec l'approximation de Zel'dovich pour t=3.17 Gyr ")
 plt.show() 
 
 
@@ -469,10 +457,22 @@ plt.hist2d(Xf2, Yf2, bins=500, cmap='plasma')
 plt.colorbar(label='Density of the points')
 plt.xlabel("Final Position X [Mpc/h]")
 plt.ylabel(" Finale Position Y [Mpc/h]")
-plt.title("Densité de matière simulée avec l'approximation de Zel'dovich ")
+plt.title("Densité de matière simulée avec l'approximation de Zel'dovich pour t=0.317 Gyr ")
 plt.show() 
 
 '''
+
+
+
+
+
+
+
+
+'''
+
+
+
 
 
 #___________
@@ -493,6 +493,7 @@ plt.xlabel("Final Position X [Mpc/h]")
 plt.ylabel(" Finale Position Y [Mpc/h]")
 plt.title("Densité de matière simulée avec l'approximation de Zel'dovich ")
 plt.show() 
+
 
 
 
@@ -530,6 +531,6 @@ plt.ylabel(" Finale Position Y [Mpc/h]")
 plt.title("Densité de matière simulée avec l'approximation de Zel'dovich ")
 plt.show() 
 
-
+'''
 
 
